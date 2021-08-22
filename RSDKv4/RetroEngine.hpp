@@ -98,6 +98,26 @@ typedef unsigned int uint;
 #define RETRO_USING_SDL2 (0)
 #endif
 
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+
+#if !RETRO_USE_ORIGINAL_CODE
+
+// set/unset to use SDL_mixer as an audio backend
+#define RETRO_USE_SDLMIXER     (1)
+#define RETRO_USING_SDL1_AUDIO (0)
+#define RETRO_USING_SDL2_AUDIO (0)
+#else
+#define RETRO_USE_SDLMIXER     (0)
+#if !RETRO_USE_SDLMIXER && RETRO_USING_SDL1
+#define RETRO_USING_SDL1_AUDIO (1)
+#define RETRO_USING_SDL2_AUDIO (0)
+#elif !RETRO_USING_SDLMIXER && RETRO_USING_SDL2
+#define RETRO_USING_SDL1_AUDIO (0)
+#define RETRO_USING_SDL2_AUDIO (1)
+#endif
+#endif
+#endif
+
 #if RETRO_PLATFORM == RETRO_iOS || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_WP7
 #define RETRO_GAMEPLATFORM (RETRO_MOBILE)
 #elif RETRO_PLATFORM == RETRO_UWP
@@ -205,6 +225,10 @@ enum RetroGameType {
 #include <vorbis/vorbisfile.h>
 #else
 
+#endif
+
+#if RETRO_USE_SDLMIXER
+#include <SDL_mixer.h>
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE

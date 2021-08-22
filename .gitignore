@@ -257,6 +257,9 @@ FakesAssemblies/
 # Visual Studio 6 workspace options file
 *.opt
 
+# vim swapfiles
+*.swp
+
 # LightSwitch generated files
 GeneratedArtifacts/
 _Pvt_Extensions/

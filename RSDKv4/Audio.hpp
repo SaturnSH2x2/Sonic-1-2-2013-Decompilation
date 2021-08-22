@@ -21,10 +21,10 @@ struct TrackInfo {
 struct MusicPlaybackInfo {
     OggVorbis_File vorbisFile;
     int vorbBitstream;
-#if RETRO_USING_SDL1
+#if RETRO_USING_SDL1_AUDIO
     SDL_AudioSpec spec;
 #endif
-#if RETRO_USING_SDL2
+#if RETRO_USING_SDL2_AUDIO
     SDL_AudioStream *stream;
 #endif
     Sint16 *buffer;
@@ -40,6 +40,13 @@ struct SFXInfo {
     Sint16 *buffer;
     size_t length;
     bool loaded;
+
+#if RETRO_USE_SDLMIXER
+    Mix_Chunk* chunk;
+    char panL;
+    char panR;
+    int channelPlaying;
+#endif
 };
 
 struct ChannelInfo {
@@ -81,16 +88,24 @@ extern ChannelInfo sfxChannels[CHANNEL_COUNT];
 
 #if !RETRO_USE_ORIGINAL_CODE
 extern MusicPlaybackInfo musInfo;
+
+#if RETRO_USE_SDLMIXER
+extern byte* trackData[TRACK_COUNT];
+extern SDL_RWops* trackRwops[TRACK_COUNT];
+extern byte* sfxData[SFX_COUNT];
+extern SDL_RWops* sfxRwops[SFX_COUNT];
 #endif
 
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+#endif
+
+#if RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
 extern SDL_AudioSpec audioDeviceFormat;
 #endif
 
 int InitAudioPlayback();
 void LoadGlobalSfx();
 
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+#if RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
 #if !RETRO_USE_ORIGINAL_CODE
 // These functions did exist, but with different signatures
 void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted);
@@ -106,13 +121,13 @@ inline void freeMusInfo()
 
         if (musInfo.buffer)
             delete[] musInfo.buffer;
-#if RETRO_USING_SDL2
+#if RETRO_USING_SDL2_AUDIO
         if (musInfo.stream)
             SDL_FreeAudioStream(musInfo.stream);
 #endif
         ov_clear(&musInfo.vorbisFile);
         musInfo.buffer = nullptr;
-#if RETRO_USING_SDL2
+#if RETRO_USING_SDL2_AUDIO
         musInfo.stream = nullptr;
 #endif
         musInfo.trackLoop = false;
@@ -124,13 +139,14 @@ inline void freeMusInfo()
 }
 #endif
 #else
-void ProcessMusicStream() {}
-void ProcessAudioPlayback() {}
-void ProcessAudioMixing() {}
+void ProcessMusicStream();
+void ProcessAudioPlayback();
+void ProcessAudioMixing();
 
 #if !RETRO_USE_ORIGINAL_CODE
 inline void freeMusInfo()
 {
+#if RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
     if (musInfo.loaded) {
         if (musInfo.musicFile)
             delete[] musInfo.musicFile;
@@ -142,6 +158,7 @@ inline void freeMusInfo()
         musInfo.currentTrack = nullptr;
         musInfo.loaded       = false;
     }
+#endif
 }
 #endif
 #endif
@@ -165,12 +182,18 @@ void LoadSfx(char *filePath, byte sfxID);
 void PlaySfx(int sfx, bool loop);
 inline void StopSfx(int sfx)
 {
+#if RETRO_USE_SDLMIXER
+    if (sfxList[sfx].channelPlaying != -1)
+        Mix_HaltChannel(sfxList[sfx].channelPlaying);
+    sfxList[sfx].channelPlaying = -1;
+#elif RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
     for (int i = 0; i < CHANNEL_COUNT; ++i) {
         if (sfxChannels[i].sfxID == sfx) {
             MEM_ZERO(sfxChannels[i]);
             sfxChannels[i].sfxID = -1;
         }
     }
+#endif
 }
 void SetSfxAttributes(int sfx, int loopCount, sbyte pan);
 
@@ -231,13 +254,13 @@ inline void ResumeSound()
 inline void StopAllSfx()
 {
 #if !RETRO_USE_ORIGINAL_CODE
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+#if RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
     SDL_LockAudio();
 #endif
 #endif
     for (int i = 0; i < CHANNEL_COUNT; ++i) sfxChannels[i].sfxID = -1;
 #if !RETRO_USE_ORIGINAL_CODE
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+#if RETRO_USING_SDL1_AUDIO || RETRO_USING_SDL2_AUDIO
     SDL_UnlockAudio();
 #endif
 #endif
@@ -246,6 +269,13 @@ inline void ReleaseGlobalSfx()
 {
     for (int i = globalSFXCount - 1; i >= 0; --i) {
         if (sfxList[i].loaded) {
+#if RETRO_USE_SDLMIXER
+           if (sfxList[i].chunk) {
+                Mix_FreeChunk(sfxList[i].chunk);
+	        sfxList[i].chunk = NULL;
+		sfxRwops[i] = NULL;
+	    }
+#endif
             StrCopy(sfxList[i].name, "");
             StrCopy(sfxNames[i], "");
             if (sfxList[i].buffer)
@@ -261,6 +291,14 @@ inline void ReleaseStageSfx()
 {
     for (int i = (stageSFXCount + globalSFXCount) - 1; i >= globalSFXCount; --i) {
         if (sfxList[i].loaded) {
+#if RETRO_USE_SDLMIXER
+           if (sfxList[i].chunk) {
+                Mix_FreeChunk(sfxList[i].chunk);
+	        sfxList[i].chunk = NULL;
+		sfxRwops[i] = NULL;
+	    }
+#endif
+
             StrCopy(sfxList[i].name, "");
             StrCopy(sfxNames[i], "");
             if (sfxList[i].buffer)
