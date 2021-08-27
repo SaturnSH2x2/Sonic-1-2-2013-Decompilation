@@ -2277,7 +2277,7 @@ void LoadBytecode(int stageListID, int scriptID)
             StrAdd(scriptPath, stageList[stageListID][stageListPosition].folder);
             StrAdd(scriptPath, ".bin");
             break;
-        case 4: StrCopy(scriptPath, "Bytecode/GlobalCode.bin"); break;
+        case 4: StrCopy(scriptPath, "Data/Scripts/ByteCode/GlobalCode.bin"); break;
         default: break;
     }
 

@@ -62,7 +62,7 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-ffunction-sections \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -D__3DS__ -DBUILD_SONIC_1
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -D__3DS__ -DFORCE_CASE_INSENSITIVE -DBUILD_SONIC_1
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -std=gnu++17 \
 	-Wno-unknown-pragmas -Wno-sign-compare -Wno-format-overflow \
@@ -71,7 +71,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -std=gnu++17 \
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lvorbisidec -logg -lcitro3d -lctru -lm
+LIBS	:= -lSDL_mixer -lSDL -lmikmod -lmad -ltheoradec -lvorbisidec -logg -lcitro2d -lcitro3d -lctru -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
